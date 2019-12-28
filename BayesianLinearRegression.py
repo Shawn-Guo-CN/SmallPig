@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import scipy.linalg as sla
 from scipy.stats import multivariate_normal as mv_norm
+import matplotlib.pyplot as plt
 
 
 def load_data(file_path):
@@ -46,19 +47,37 @@ class BayesianLinearRegression(object):
 
 if __name__ == '__main__':
     X, y = load_data('data.csv')
+    print('loaded data from {}'.format('data.csv'))
+
     D = X.shape[1]
     sigma_w = 1.0
-    sigma_y = 0.5
+    sigma_y = 0.05
 
     prior_mean = np.zeros(D).T
     prior_cov = sigma_w * np.eye(D)
 
+    print('fitting data ...', end=' ')
     model = BayesianLinearRegression(prior_mean, prior_cov, sigma_y)
     model.fit(X, y)
+    print('done')
+    
+    N = X.shape[0]
+    real_y = []
+    pred_y = []
+    pred_cov = []
 
-    x = X[2]
-    t = y[2]
-    pred_t, pred_cov = model.predict(x)
-    print('real t:', t)
-    print('predicted t:', pred_t)
-    print('prediction variance:', pred_cov)
+    for i in range(1, N):
+        real_y.append(y[i])
+        _pred_y, _pred_cov = model.predict(X[i-1])
+        pred_y.append(_pred_y)
+        pred_cov.append(_pred_cov)
+
+    pred_y = np.asarray(pred_y)
+    pred_cov = np.asarray(pred_cov)
+
+    x_axis = np.arange(N-1)
+    plt.plot(x_axis, real_y, label='True values')
+    plt.plot(x_axis, pred_y, label='Predicted values')
+    plt.fill_between(x_axis, pred_y-pred_cov, pred_y+pred_cov, facecolor='green', alpha=0.3)
+    plt.legend()
+    plt.show()
