@@ -20,30 +20,45 @@ class BayesianLinearRegression(object):
         likelihood_sigma (float): variance of data noise
         """
         super().__init__()
-        self.prior = mv_norm(mean=prior_mu, cov=prior_sigma)
-        self.w0 = np.T(prior_mu)
+        self.w0 = prior_mean
         self.V0 = prior_sigma
         self.likelihood_sigma = likelihood_sigma
         self.dimension = prior_mu.shape[0]
 
         self.wN = self.w0
         self.VN = self.V0
-        self.posterior = self.prior
+
+        self.posterior = None
     
     def fit(self, X, y):
         self.VN = self.likelihood_sigma**2 * \
-            np.linalg.inv(X.T.dot(X) + self.likelihood_sigma**2 * np.linalg(self.V0))
+            np.linalg.inv(X.T.dot(X) + self.likelihood_sigma**2 * np.linalg.inv(self.V0))
         self.wN = self.VN.dot(np.linalg.inv(self.V0).dot(self.w0)) + 1./(self.likelihood_sigma**2) * \
             self.VN.dot(X.T).dot(y)
         
-        self.posterior = mv_norm(mean=self.mN.flatten(), cov=self.VN)
+        self.posterior = mv_norm(mean=self.wN, cov=self.VN)
 
-    def predict(self, X):
-        mean = self.wN.dot(X)
+    def predict(self, x):
+        mean = self.wN.dot(x)
         cov = self.wN.T.dot(self.VN).dot(self.wN) + self.likelihood_sigma ** 2
         return mean, cov
 
 
 if __name__ == '__main__':
     X, y = load_data('data.csv')
-    
+    D = X.shape[1]
+    sigma_w = 1.0
+    sigma_y = 0.5
+
+    prior_mean = np.zeros(D).T
+    prior_cov = sigma_w * np.eye(D)
+
+    model = BayesianLinearRegression(prior_mean, prior_cov, sigma_y)
+    model.fit(X, y)
+
+    x = X[2]
+    t = y[2]
+    pred_t, pred_cov = model.predict(x)
+    print('real t:', t)
+    print('predicted t:', pred_t)
+    print('prediction variance:', pred_cov)
